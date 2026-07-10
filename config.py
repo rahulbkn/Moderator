@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     max_image_size: int = 1080
-    model_cache_dir: str = "~/.nudenet"
+    nudenet_model: str = "default"
     log_level: str = "INFO"
     request_timeout: int = 30
     host: str = "0.0.0.0"
@@ -13,9 +13,7 @@ class Settings(BaseSettings):
         "cloudinary.com",
     ]
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+    model_config = {"protected_namespaces": ()}
 
 
 settings = Settings()

@@ -1,7 +1,12 @@
 import logging
+import os
+import urllib.request
 from functools import lru_cache
+from pathlib import Path
 
 from nudenet import NudeDetector
+
+from config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -31,14 +36,38 @@ LABEL_MAP = {
 }
 
 
+MODEL_URLS = {
+    "default": "https://github.com/notAI-tech/NudeNet/releases/download/v3.4.2/default.onnx",
+    "light": "https://github.com/notAI-tech/NudeNet/releases/download/v3.4.2/320n.onnx",
+}
+
+
+def _ensure_model(model_name: str) -> str:
+    model_dir = Path.home() / ".nudenet"
+    model_dir.mkdir(parents=True, exist_ok=True)
+
+    filename = "default.onnx" if model_name == "default" else "320n.onnx"
+    model_path = model_dir / filename
+
+    if not model_path.exists():
+        url = MODEL_URLS.get(model_name, MODEL_URLS["default"])
+        logger.info("Downloading NudeNet model %s from %s", filename, url)
+        urllib.request.urlretrieve(url, model_path)
+        logger.info("Model downloaded to %s", model_path)
+
+    return str(model_path)
+
+
 class Moderator:
     def __init__(self):
         self._detector: NudeDetector | None = None
 
     def load_model(self):
         if self._detector is None:
-            logger.info("Loading NudeNet model")
-            self._detector = NudeDetector("light")
+            model_name = settings.nudenet_model
+            model_path = _ensure_model(model_name)
+            logger.info("Loading NudeNet model from %s", model_path)
+            self._detector = NudeDetector(model_path)
             logger.info("NudeNet model loaded successfully")
 
     @property
