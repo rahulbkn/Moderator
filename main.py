@@ -71,7 +71,7 @@ async def moderate(request: ModerateRequest):
     image_url = str(request.image_url)
     tmp_path = None
     try:
-        tmp_path = prepare_image(image_url)
+        tmp_path = await prepare_image(image_url)
         moderator = get_moderator()
         result = moderator.analyze(tmp_path)
         return result
