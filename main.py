@@ -61,6 +61,11 @@ async def health():
     return {"status": "ok"}
 
 
+@app.get("/")
+async def root():
+    return {"message": "Welcome to the Image Moderation API. See /docs for API documentation."}
+
+
 @app.post("/moderate", response_model=ModerateResponse | ErrorResponse)
 async def moderate(request: ModerateRequest):
     image_url = str(request.image_url)
