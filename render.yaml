@@ -13,5 +13,3 @@ services:
         value: "1080"
       - key: REQUEST_TIMEOUT
         value: "30"
-      - key: NUDENET_MODEL
-        value: default
