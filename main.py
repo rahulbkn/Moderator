@@ -1,7 +1,5 @@
 import logging
 import os
-import sys
-import inspect
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -40,16 +38,6 @@ class ErrorResponse(BaseModel):
     error: str
 
 
-# Body parts that trigger an immediate NSFW flag
-NSFW_LABELS = {
-    "FEMALE_GENITALIA_EXPOSED",
-    "MALE_GENITALIA_EXPOSED",
-    "FEMALE_BREAST_EXPOSED",
-    "BUTTOCKS_EXPOSED",
-    "ANUS_EXPOSED"
-}
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting up moderation API")
@@ -83,49 +71,9 @@ async def moderate(request: ModerateRequest):
     tmp_path = None
     try:
         tmp_path = await prepare_image(image_url)
-        
-        # Guard against coroutine proxies from utils.py
-        if inspect.iscoroutine(tmp_path):
-            tmp_path = await tmp_path
-            
         moderator = get_moderator()
-        
-        # NudeNet returns a list of dictionaries tracking body parts
-        detections = moderator.analyze(tmp_path) or []
-        
-        # Parse detections to find the highest explicit content score
-        is_safe = True
-        max_nsfw_score = 0.0
-        parsed_detections = []
-        
-        for item in detections:
-            label = item.get("class", "")
-            score = float(item.get("score", 0.0))
-            
-            parsed_detections.append({
-                "label": label,
-                "confidence": score
-            })
-            
-            # If an explicit region is found above our confidence threshold
-            if label in NSFW_LABELS:
-                if score > max_nsfw_score:
-                    max_nsfw_score = score
-                if score > 0.60:  # You can adjust threshold sensitivity here (0.60 = 60%)
-                    is_safe = False
-
-        # If no explicit content found, use standard base score tracking
-        if is_safe and parsed_detections:
-            max_nsfw_score = max([d["confidence"] for d in parsed_detections], default=0.0)
-
-        # Return the exact JSON dictionary structure your Cloudflare worker expects
-        return {
-            "success": True,
-            "safe": is_safe,
-            "nsfw_score": round(max_nsfw_score, 3),
-            "detections": parsed_detections
-        }
-
+        result = moderator.analyze(tmp_path)
+        return result
     except ValueError as e:
         logger.warning("Validation error: %s", e)
         raise HTTPException(status_code=400, detail=str(e))
@@ -133,13 +81,9 @@ async def moderate(request: ModerateRequest):
         logger.error("Moderation failed: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
     finally:
-        # Strict validation check to completely prevent the OS deletion crash
-        if tmp_path and isinstance(tmp_path, (str, bytes, os.PathLike)):
-            if os.path.exists(tmp_path):
-                os.unlink(tmp_path)
-                logger.debug("Cleaned up temp file: %s", tmp_path)
-        elif tmp_path:
-            logger.error("Cleanup skipped: tmp_path resolved to an invalid type: %s", type(tmp_path))
+        if tmp_path and os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+            logger.debug("Cleaned up temp file: %s", tmp_path)
 
 
 if __name__ == "__main__":
