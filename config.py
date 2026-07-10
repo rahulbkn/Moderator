@@ -7,10 +7,7 @@ class Settings(BaseSettings):
     request_timeout: int = 30
     host: str = "0.0.0.0"
     port: int = 8000
-    allowed_domains: list[str] = [
-        "res.cloudinary.com",
-        "cloudinary.com",
-    ]
+    allowed_domains: list[str] = []
 
     model_config = {"protected_namespaces": ()}
 
