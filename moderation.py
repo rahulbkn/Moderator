@@ -67,7 +67,14 @@ class Moderator:
             model_name = settings.nudenet_model
             model_path = _ensure_model(model_name)
             logger.info("Loading NudeNet model from %s", model_path)
-            self._detector = NudeDetector(model_path)
+            try:
+                self._detector = NudeDetector(model_path)
+            except Exception:
+                logger.warning("Failed to load model %s. Deleting and re-downloading.", model_path)
+                if os.path.exists(model_path):
+                    os.remove(model_path)
+                model_path = _ensure_model(model_name)
+                self._detector = NudeDetector(model_path)
             logger.info("NudeNet model loaded successfully")
 
     @property
