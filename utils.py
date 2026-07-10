@@ -67,17 +67,21 @@ async def prepare_image(url: str) -> str:
     logger.info("Resizing image to max %dpx", settings.max_image_size)
     resized = resize_image(image_data, settings.max_image_size)
 
-    # Force using an absolute string path cleanly generated across platforms
+    # Create temporary file and write image data
     tmp_fd, tmp_path = tempfile.mkstemp(suffix=".jpg")
     
     try:
         with os.fdopen(tmp_fd, 'wb') as tmp_file:
             tmp_file.write(resized)
     except Exception as e:
+        try:
+            os.close(tmp_fd)
+        except OSError:
+            pass
         os.unlink(tmp_path)
-        raise e
+        raise
 
-    # Cast to pure absolute string path to destroy any temporary file pointer objects
+    # Convert to absolute string path
     final_path = str(Path(tmp_path).resolve())
     logger.info("Image saved to temporary file: %s", final_path)
     
