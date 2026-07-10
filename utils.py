@@ -1,6 +1,7 @@
 import io
 import logging
 import tempfile
+import os
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -66,8 +67,18 @@ async def prepare_image(url: str) -> str:
     logger.info("Resizing image to max %dpx", settings.max_image_size)
     resized = resize_image(image_data, settings.max_image_size)
 
-    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".jpg")
-    tmp.write(resized)
-    tmp.close()
-    logger.info("Image saved to temporary file: %s", tmp.name)
-    return tmp.name
+    # Force using an absolute string path cleanly generated across platforms
+    tmp_fd, tmp_path = tempfile.mkstemp(suffix=".jpg")
+    
+    try:
+        with os.fdopen(tmp_fd, 'wb') as tmp_file:
+            tmp_file.write(resized)
+    except Exception as e:
+        os.unlink(tmp_path)
+        raise e
+
+    # Cast to pure absolute string path to destroy any temporary file pointer objects
+    final_path = str(Path(tmp_path).resolve())
+    logger.info("Image saved to temporary file: %s", final_path)
+    
+    return final_path
