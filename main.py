@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+import inspect  # Added to safely detect and resolve coroutines if utils.py misbehaves
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -72,6 +73,11 @@ async def moderate(request: ModerateRequest):
     tmp_path = None
     try:
         tmp_path = await prepare_image(image_url)
+        
+        # Double-check guard: If prepare_image returned a coroutine, resolve it
+        if inspect.iscoroutine(tmp_path):
+            tmp_path = await tmp_path
+            
         moderator = get_moderator()
         result = moderator.analyze(tmp_path)
         return result
@@ -82,9 +88,13 @@ async def moderate(request: ModerateRequest):
         logger.error("Moderation failed: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error")
     finally:
-        if tmp_path and os.path.exists(tmp_path):
-            os.unlink(tmp_path)
-            logger.debug("Cleaned up temp file: %s", tmp_path)
+        # Strict validation check to completely prevent the "TypeError: stat..." crash
+        if tmp_path and isinstance(tmp_path, (str, bytes, os.PathLike)):
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+                logger.debug("Cleaned up temp file: %s", tmp_path)
+        elif tmp_path:
+            logger.error("Cleanup skipped: tmp_path resolved to an invalid type: %s", type(tmp_path))
 
 
 if __name__ == "__main__":
