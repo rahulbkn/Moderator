@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: image-moderation-api
+    runtime: python
+    region: oregon
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT --workers 1
+    envVars:
+      - key: LOG_LEVEL
+        value: INFO
+      - key: MAX_IMAGE_SIZE
+        value: "1080"
+      - key: REQUEST_TIMEOUT
+        value: "30"
