@@ -45,14 +45,22 @@ async def download_image(url: str) -> bytes:
         return response.content
 
 
-def resize_image(image_bytes: bytes, max_size: int) -> bytes:
+def resize_image(image_bytes: bytes, max_size: int, min_size: int) -> bytes:
     image = Image.open(io.BytesIO(image_bytes))
-    if max(image.width, image.height) > max_size:
-        ratio = max_size / max(image.width, image.height)
+    longest_edge = max(image.width, image.height)
+    if longest_edge > max_size:
+        ratio = max_size / longest_edge
         new_size = (int(image.width * ratio), int(image.height * ratio))
         image = image.resize(new_size, Image.LANCZOS)
+    elif longest_edge < min_size:
+        ratio = min_size / longest_edge
+        new_size = (int(image.width * ratio), int(image.height * ratio))
+        image = image.resize(new_size, Image.LANCZOS)
+    if image.mode != "RGB":
+        image = image.convert("RGB")
+
     output = io.BytesIO()
-    image.save(output, format="JPEG", quality=85)
+    image.save(output, format="JPEG", quality=90)
     return output.getvalue()
 
 
@@ -64,8 +72,14 @@ async def prepare_image(url: str) -> str:
     logger.info("Downloading image: %s", url)
     image_data = await download_image(url)
 
-    logger.info("Resizing image to max %dpx", settings.max_image_size)
-    resized = resize_image(image_data, settings.max_image_size)
+    logger.info(
+        "Resizing image to min %dpx and max %dpx",
+        settings.min_image_size,
+        settings.max_image_size,
+    )
+    resized = resize_image(
+        image_data, settings.max_image_size, settings.min_image_size
+    )
 
     # Create temporary file and write image data
     tmp_fd, tmp_path = tempfile.mkstemp(suffix=".jpg")
@@ -73,7 +87,7 @@ async def prepare_image(url: str) -> str:
     try:
         with os.fdopen(tmp_fd, 'wb') as tmp_file:
             tmp_file.write(resized)
-    except Exception as e:
+    except Exception:
         try:
             os.close(tmp_fd)
         except OSError:
