@@ -3,6 +3,7 @@ from functools import lru_cache
 
 from nudenet import NudeDetector
 
+from cloud_vision import get_cloud_vision_moderator
 from config import settings
 
 logger = logging.getLogger(__name__)
@@ -17,6 +18,11 @@ EXPLICIT_NSFW_LABELS = {
     "EXPOSED_PUBIC_AREA",
 }
 
+VISION_NSFW_LABELS = {
+    "VISION_ADULT",
+    "VISION_RACY",
+}
+
 SENSITIVE_COVERED_LABELS = {
     "COVERED_BREAST_F",
     "COVERED_GENITALIA_F",
@@ -24,7 +30,7 @@ SENSITIVE_COVERED_LABELS = {
     "COVERED_BUTTOCKS",
 }
 
-NSFW_LABELS = EXPLICIT_NSFW_LABELS | SENSITIVE_COVERED_LABELS
+NSFW_LABELS = EXPLICIT_NSFW_LABELS | SENSITIVE_COVERED_LABELS | VISION_NSFW_LABELS
 
 LABEL_MAP = {
     "EXPOSED_BREAST_F": "EXPOSED_BREAST_F",
@@ -90,14 +96,17 @@ class Moderator:
         return self._detector
 
     def analyze(self, image_path: str) -> dict:
-        raw_results = self.detector.detect(image_path)
+        raw_results = [
+            *self.detector.detect(image_path),
+            *get_cloud_vision_moderator().analyze(image_path),
+        ]
 
         detections = []
         weighted_confidences = []
 
         for result in raw_results:
-            label = result.get("class", "")
-            confidence = result.get("score", 0.0)
+            label = result.get("class") or result.get("label", "")
+            confidence = result.get("score", result.get("confidence", 0.0))
 
             mapped_label = LABEL_MAP.get(label, label)
             if mapped_label in NSFW_LABELS and confidence > 0.0:
