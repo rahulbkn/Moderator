@@ -98,6 +98,10 @@ Moderate an image from a Cloudinary URL.
 | `REQUEST_TIMEOUT` | `30` | HTTP request timeout in seconds |
 | `HOST` | `0.0.0.0` | Server host |
 | `PORT` | `8000` | Server port |
+| `CLOUD_VISION_ENABLED` | `false` | Enable Google Cloud Vision SafeSearch in addition to NudeNet |
+| `CLOUD_VISION_MIN_SCORE` | `0.5` | Minimum mapped SafeSearch score to include as a moderation signal |
+| `GOOGLE_CLOUD_VISION_CREDENTIALS_JSON` | unset | Full Google service-account JSON key; enables Cloud Vision automatically when set |
+| `GOOGLE_APPLICATION_CREDENTIALS` | unset | Alternative Google-supported path to a service-account JSON key file |
 
 ## Local Development
 

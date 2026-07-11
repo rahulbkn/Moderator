@@ -40,6 +40,18 @@ class ModerationScoringTests(unittest.TestCase):
         self.assertTrue(result["safe"])
         self.assertEqual(result["nsfw_score"], 0.255)
 
+    def test_cloud_vision_racy_signal_marks_unsafe(self):
+        moderator = Moderator()
+        moderator._detector = FakeDetector([
+            {"label": "VISION_RACY", "confidence": 0.8},
+        ])
+
+        result = moderator.analyze("/tmp/example.jpg")
+
+        self.assertFalse(result["safe"])
+        self.assertEqual(result["nsfw_score"], 0.8)
+        self.assertEqual(result["detections"][0]["label"], "VISION_RACY")
+
     def test_calculate_nsfw_score_caps_at_one(self):
         self.assertEqual(calculate_nsfw_score([0.95, 0.9, 0.8]), 1.0)
 
