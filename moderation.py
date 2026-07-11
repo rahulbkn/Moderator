@@ -56,6 +56,20 @@ LABEL_SCORE_WEIGHTS = {
     "COVERED_BUTTOCKS": 0.85,
 }
 
+AGGREGATE_SCORE_WEIGHTS = (1.0, 0.5, 0.25)
+
+
+def calculate_nsfw_score(weighted_confidences: list[float]) -> float:
+    if not weighted_confidences:
+        return 0.0
+
+    sorted_confidences = sorted(weighted_confidences, reverse=True)
+    aggregate_score = 0.0
+    for confidence, weight in zip(sorted_confidences, AGGREGATE_SCORE_WEIGHTS):
+        aggregate_score += confidence * weight
+
+    return round(min(aggregate_score, 1.0), 4)
+
 
 class Moderator:
     def __init__(self):
@@ -79,7 +93,7 @@ class Moderator:
         raw_results = self.detector.detect(image_path)
 
         detections = []
-        max_confidence = 0.0
+        weighted_confidences = []
 
         for result in raw_results:
             label = result.get("class", "")
@@ -94,11 +108,15 @@ class Moderator:
                     "label": mapped_label,
                     "confidence": round(confidence, 4),
                 })
-                if weighted_confidence > max_confidence:
-                    max_confidence = weighted_confidence
+                weighted_confidences.append(weighted_confidence)
 
-        nsfw_score = round(max_confidence, 4)
-        safe = nsfw_score < settings.nsfw_threshold
+        nsfw_score = calculate_nsfw_score(weighted_confidences)
+        unsafe_by_score = nsfw_score >= settings.nsfw_threshold
+        unsafe_by_multiple_signals = (
+            len(weighted_confidences) >= 2
+            and nsfw_score >= settings.nsfw_multi_detection_threshold
+        )
+        safe = not (unsafe_by_score or unsafe_by_multiple_signals)
 
         return {
             "success": True,
