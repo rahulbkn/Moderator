@@ -89,11 +89,18 @@ Moderate an image from a Cloudinary URL.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `MAX_IMAGE_SIZE` | `1080` | Max dimension for image resizing |
+| `MAX_IMAGE_SIZE` | `1280` | Max dimension for image resizing |
+| `MIN_IMAGE_SIZE` | `640` | Minimum longest edge; smaller images are upscaled before inference |
+| `MODEL_INFERENCE_RESOLUTION` | `640` | NudeNet inference resolution for improved small-detail detection |
+| `NSFW_THRESHOLD` | `0.45` | Score threshold used to mark an image unsafe |
+| `NSFW_MULTI_DETECTION_THRESHOLD` | `0.38` | Lower threshold applied when multiple NSFW body-part detections are found |
 | `LOG_LEVEL` | `INFO` | Logging level |
 | `REQUEST_TIMEOUT` | `30` | HTTP request timeout in seconds |
 | `HOST` | `0.0.0.0` | Server host |
 | `PORT` | `8000` | Server port |
+| `FALCONSAI_ENABLED` | `true` | Enable FalconsAI NSFW image classification in addition to NudeNet |
+| `FALCONSAI_MODEL_NAME` | `Falconsai/nsfw_image_detection` | Hugging Face model id for the FalconsAI classifier |
+| `FALCONSAI_MIN_SCORE` | `0.5` | Minimum FalconsAI NSFW score to include as a moderation signal |
 
 ## Local Development
 
@@ -101,3 +108,19 @@ Moderate an image from a Cloudinary URL.
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
+
+## FalconsAI NSFW detector setup
+
+This API now uses NudeNet plus the FalconsAI Hugging Face NSFW image classifier. You do not need a Google Cloud key anymore.
+
+FalconsAI is enabled by default with `FALCONSAI_ENABLED=true`. On first startup, the model `Falconsai/nsfw_image_detection` is downloaded by `transformers`, so the deployment environment needs internet access or a pre-warmed Hugging Face cache.
+
+For Render or another hosted deployment, set these environment variables only if you want to override the defaults:
+
+```bash
+FALCONSAI_ENABLED=true
+FALCONSAI_MODEL_NAME=Falconsai/nsfw_image_detection
+FALCONSAI_MIN_SCORE=0.5
+```
+
+If you need to run without FalconsAI temporarily, set `FALCONSAI_ENABLED=false`; NudeNet will still run.
