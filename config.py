@@ -7,9 +7,9 @@ class Settings(BaseSettings):
     model_inference_resolution: int = 640
     nsfw_threshold: float = 0.45
     nsfw_multi_detection_threshold: float = 0.38
-    cloud_vision_enabled: bool = False
-    cloud_vision_min_score: float = 0.5
-    google_cloud_vision_credentials_json: str | None = None
+    falconsai_enabled: bool = True
+    falconsai_model_name: str = "Falconsai/nsfw_image_detection"
+    falconsai_min_score: float = 0.5
     log_level: str = "INFO"
     request_timeout: int = 30
     host: str = "0.0.0.0"

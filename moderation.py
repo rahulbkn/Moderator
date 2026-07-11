@@ -3,7 +3,7 @@ from functools import lru_cache
 
 from nudenet import NudeDetector
 
-from cloud_vision import get_cloud_vision_moderator
+from falconsai_detector import get_falconsai_moderator
 from config import settings
 
 logger = logging.getLogger(__name__)
@@ -18,9 +18,8 @@ EXPLICIT_NSFW_LABELS = {
     "EXPOSED_PUBIC_AREA",
 }
 
-VISION_NSFW_LABELS = {
-    "VISION_ADULT",
-    "VISION_RACY",
+FALCONSAI_NSFW_LABELS = {
+    "FALCONSAI_NSFW",
 }
 
 SENSITIVE_COVERED_LABELS = {
@@ -30,7 +29,7 @@ SENSITIVE_COVERED_LABELS = {
     "COVERED_BUTTOCKS",
 }
 
-NSFW_LABELS = EXPLICIT_NSFW_LABELS | SENSITIVE_COVERED_LABELS | VISION_NSFW_LABELS
+NSFW_LABELS = EXPLICIT_NSFW_LABELS | SENSITIVE_COVERED_LABELS | FALCONSAI_NSFW_LABELS
 
 LABEL_MAP = {
     "EXPOSED_BREAST_F": "EXPOSED_BREAST_F",
@@ -98,7 +97,7 @@ class Moderator:
     def analyze(self, image_path: str) -> dict:
         raw_results = [
             *self.detector.detect(image_path),
-            *get_cloud_vision_moderator().analyze(image_path),
+            *get_falconsai_moderator().analyze(image_path),
         ]
 
         detections = []

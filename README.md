@@ -98,10 +98,9 @@ Moderate an image from a Cloudinary URL.
 | `REQUEST_TIMEOUT` | `30` | HTTP request timeout in seconds |
 | `HOST` | `0.0.0.0` | Server host |
 | `PORT` | `8000` | Server port |
-| `CLOUD_VISION_ENABLED` | `false` | Enable Google Cloud Vision SafeSearch in addition to NudeNet |
-| `CLOUD_VISION_MIN_SCORE` | `0.5` | Minimum mapped SafeSearch score to include as a moderation signal |
-| `GOOGLE_CLOUD_VISION_CREDENTIALS_JSON` | unset | Full Google service-account JSON key; enables Cloud Vision automatically when set |
-| `GOOGLE_APPLICATION_CREDENTIALS` | unset | Alternative Google-supported path to a service-account JSON key file |
+| `FALCONSAI_ENABLED` | `true` | Enable FalconsAI NSFW image classification in addition to NudeNet |
+| `FALCONSAI_MODEL_NAME` | `Falconsai/nsfw_image_detection` | Hugging Face model id for the FalconsAI classifier |
+| `FALCONSAI_MIN_SCORE` | `0.5` | Minimum FalconsAI NSFW score to include as a moderation signal |
 
 ## Local Development
 
@@ -110,33 +109,18 @@ pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
-## Google Cloud Vision key setup
+## FalconsAI NSFW detector setup
 
-Do **not** commit your Google service-account JSON key to this repository. Add it as an environment variable in your hosting provider instead.
+This API now uses NudeNet plus the FalconsAI Hugging Face NSFW image classifier. You do not need a Google Cloud key anymore.
 
-### Render / hosted deployment
+FalconsAI is enabled by default with `FALCONSAI_ENABLED=true`. On first startup, the model `Falconsai/nsfw_image_detection` is downloaded by `transformers`, so the deployment environment needs internet access or a pre-warmed Hugging Face cache.
 
-1. Open your Render service dashboard.
-2. Go to **Environment**.
-3. Add `GOOGLE_CLOUD_VISION_CREDENTIALS_JSON`.
-4. Paste the full service-account JSON key as the value. Use the raw JSON from Google Cloud, preferably minified onto one line.
-5. Save and redeploy the service.
-
-When `GOOGLE_CLOUD_VISION_CREDENTIALS_JSON` is set, Cloud Vision SafeSearch is enabled automatically. You may also set `CLOUD_VISION_ENABLED=true` explicitly.
-
-### Local development
-
-For local testing, either export the full JSON key:
+For Render or another hosted deployment, set these environment variables only if you want to override the defaults:
 
 ```bash
-export GOOGLE_CLOUD_VISION_CREDENTIALS_JSON='{"type":"service_account","project_id":"..."}'
+FALCONSAI_ENABLED=true
+FALCONSAI_MODEL_NAME=Falconsai/nsfw_image_detection
+FALCONSAI_MIN_SCORE=0.5
 ```
 
-Or save the JSON key outside the repo and point Google Application Default Credentials to it:
-
-```bash
-export CLOUD_VISION_ENABLED=true
-export GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/outside/this/repo/service-account.json
-```
-
-The JSON key needs permission to call the Google Cloud Vision API, and the Vision API must be enabled for the key's Google Cloud project.
+If you need to run without FalconsAI temporarily, set `FALCONSAI_ENABLED=false`; NudeNet will still run.
