@@ -109,3 +109,34 @@ Moderate an image from a Cloudinary URL.
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
+
+## Google Cloud Vision key setup
+
+Do **not** commit your Google service-account JSON key to this repository. Add it as an environment variable in your hosting provider instead.
+
+### Render / hosted deployment
+
+1. Open your Render service dashboard.
+2. Go to **Environment**.
+3. Add `GOOGLE_CLOUD_VISION_CREDENTIALS_JSON`.
+4. Paste the full service-account JSON key as the value. Use the raw JSON from Google Cloud, preferably minified onto one line.
+5. Save and redeploy the service.
+
+When `GOOGLE_CLOUD_VISION_CREDENTIALS_JSON` is set, Cloud Vision SafeSearch is enabled automatically. You may also set `CLOUD_VISION_ENABLED=true` explicitly.
+
+### Local development
+
+For local testing, either export the full JSON key:
+
+```bash
+export GOOGLE_CLOUD_VISION_CREDENTIALS_JSON='{"type":"service_account","project_id":"..."}'
+```
+
+Or save the JSON key outside the repo and point Google Application Default Credentials to it:
+
+```bash
+export CLOUD_VISION_ENABLED=true
+export GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/outside/this/repo/service-account.json
+```
+
+The JSON key needs permission to call the Google Cloud Vision API, and the Vision API must be enabled for the key's Google Cloud project.
